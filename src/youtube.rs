@@ -42,7 +42,7 @@ pub fn get_embed_url(url: &str) -> Option<String> {
 /// Tạo mã HTML chứa iframe với giao diện Responsive chuẩn 16:9
 pub fn get_embed_html(url: &str) -> Option<String> {
     let embed_url = get_embed_url(url)?;
-    
+
     // Sử dụng CSS inline để bọc video chuẩn 16:9 (aspect-ratio),
     // giúp khung video tự động co giãn theo màn hình điện thoại hay máy tính.
     let html = format!(
@@ -56,7 +56,7 @@ pub fn get_embed_html(url: &str) -> Option<String> {
 </div>"#,
         embed_url
     );
-    
+
     Some(html)
 }
 
@@ -70,22 +70,46 @@ mod tests {
     #[test]
     fn test_extract_video_id() {
         // Test URL chuẩn
-        assert_eq!(extract_video_id("https://www.youtube.com/watch?v=1SGCu28948U").as_deref(), Some("1SGCu28948U"));
-        assert_eq!(extract_video_id("http://youtube.com/watch?v=1SGCu28948U").as_deref(), Some("1SGCu28948U"));
+        assert_eq!(
+            extract_video_id("https://www.youtube.com/watch?v=1SGCu28948U").as_deref(),
+            Some("1SGCu28948U")
+        );
+        assert_eq!(
+            extract_video_id("http://youtube.com/watch?v=1SGCu28948U").as_deref(),
+            Some("1SGCu28948U")
+        );
 
         // Test URL có chứa thêm biến thời gian hoặc danh sách
-        assert_eq!(extract_video_id("https://www.youtube.com/watch?v=1SGCu28948U&t=120s").as_deref(), Some("1SGCu28948U"));
-        assert_eq!(extract_video_id("https://www.youtube.com/watch?v=1SGCu28948U&list=PLxyz").as_deref(), Some("1SGCu28948U"));
+        assert_eq!(
+            extract_video_id("https://www.youtube.com/watch?v=1SGCu28948U&t=120s").as_deref(),
+            Some("1SGCu28948U")
+        );
+        assert_eq!(
+            extract_video_id("https://www.youtube.com/watch?v=1SGCu28948U&list=PLxyz").as_deref(),
+            Some("1SGCu28948U")
+        );
 
         // Test URL rút gọn từ nút Share (youtu.be)
-        assert_eq!(extract_video_id("https://youtu.be/1SGCu28948U").as_deref(), Some("1SGCu28948U"));
-        assert_eq!(extract_video_id("https://youtu.be/1SGCu28948U?si=yWS4-Cwon98ivVzB").as_deref(), Some("1SGCu28948U"));
+        assert_eq!(
+            extract_video_id("https://youtu.be/1SGCu28948U").as_deref(),
+            Some("1SGCu28948U")
+        );
+        assert_eq!(
+            extract_video_id("https://youtu.be/1SGCu28948U?si=yWS4-Cwon98ivVzB").as_deref(),
+            Some("1SGCu28948U")
+        );
 
         // Test URL phiên bản mobile (m.youtube.com)
-        assert_eq!(extract_video_id("https://m.youtube.com/watch?v=1SGCu28948U").as_deref(), Some("1SGCu28948U"));
+        assert_eq!(
+            extract_video_id("https://m.youtube.com/watch?v=1SGCu28948U").as_deref(),
+            Some("1SGCu28948U")
+        );
 
         // Test link đã là embed sẵn
-        assert_eq!(extract_video_id("https://www.youtube.com/embed/1SGCu28948U?si=abc").as_deref(), Some("1SGCu28948U"));
+        assert_eq!(
+            extract_video_id("https://www.youtube.com/embed/1SGCu28948U?si=abc").as_deref(),
+            Some("1SGCu28948U")
+        );
 
         // Test link rác/không hợp lệ
         assert_eq!(extract_video_id("https://google.com"), None);

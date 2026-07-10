@@ -1,5 +1,5 @@
-use std::{fs, io};
 use std::path::Path;
+use std::{fs, io};
 
 /// Hàm thực thi lệnh tạo dự án mới
 pub fn execute(target_path: &Path) -> io::Result<()> {
@@ -15,9 +15,8 @@ pub fn execute(target_path: &Path) -> io::Result<()> {
         }
     } else {
         // Tạo thư mục gốc nếu chưa tồn tại
-        fs::create_dir_all(target_path).map_err(|e| {
-            io::Error::new(e.kind(), format!("Không thể tạo thư mục gốc: {}", e))
-        })?;
+        fs::create_dir_all(target_path)
+            .map_err(|e| io::Error::new(e.kind(), format!("Không thể tạo thư mục gốc: {}", e)))?;
     }
 
     println!("📂 Đang khởi tạo dự án tại: {}", target_path.display());
@@ -30,7 +29,10 @@ description: "Trang web học tập tĩnh tạo bởi hochanh"
 author: "Sensei"
 "#;
     fs::write(&config_path, config_content).map_err(|e| {
-        io::Error::new(e.kind(), format!("Không có quyền ghi file hochanh.yml: {}", e))
+        io::Error::new(
+            e.kind(),
+            format!("Không có quyền ghi file hochanh.yml: {}", e),
+        )
     })?;
     println!("  ✅ Đã tạo: hochanh.yml");
 

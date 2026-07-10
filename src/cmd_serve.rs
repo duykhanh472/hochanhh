@@ -1,7 +1,7 @@
+use crate::cmd_build;
 use std::fs::File;
 use std::path::Path;
-use tiny_http::{Server, Response, Header};
-use crate::cmd_build; // Import module build để gọi lại
+use tiny_http::{Header, Response, Server}; // Import module build để gọi lại
 
 pub fn execute() -> Result<(), String> {
     // 1. Tự động chạy lệnh build trước khi start server
@@ -57,14 +57,16 @@ pub fn execute() -> Result<(), String> {
                     let _ = request.respond(response);
                 }
                 Err(_) => {
-                    let response = Response::from_string("500 Internal Server Error").with_status_code(500);
+                    let response =
+                        Response::from_string("500 Internal Server Error").with_status_code(500);
                     let _ = request.respond(response);
                 }
             }
         } else {
             // Xử lý lỗi 404 nếu file không tồn tại
             println!("  [404] Không tìm thấy file: {}", url_path);
-            let response = Response::from_string("404 - Trang không tồn tại (Not Found)").with_status_code(404);
+            let response = Response::from_string("404 - Trang không tồn tại (Not Found)")
+                .with_status_code(404);
             let _ = request.respond(response);
         }
     }

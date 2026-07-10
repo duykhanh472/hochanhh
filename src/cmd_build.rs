@@ -1,7 +1,7 @@
+use crate::parser::{self, Course, Lesson};
 use std::fs;
 use std::path::Path;
-use tera::{Tera, Context};
-use crate::parser::{self, Course, Lesson};
+use tera::{Context, Tera};
 
 pub fn execute() -> Result<(), String> {
     println!("Bắt đầu tạo trang...");
@@ -16,15 +16,19 @@ pub fn execute() -> Result<(), String> {
     // 2. Khởi tạo thư mục đích `site/` và `site/css/`
     let site_dir = Path::new("site");
     if site_dir.exists() {
-        fs::remove_dir_all(site_dir).map_err(|e| format!("Không thể xóa thư mục site cũ: {}", e))?;
+        fs::remove_dir_all(site_dir)
+            .map_err(|e| format!("Không thể xóa thư mục site cũ: {}", e))?;
     }
-    fs::create_dir_all(site_dir.join("css")).map_err(|e| format!("Lỗi tạo thư mục site/css: {}", e))?;
+    fs::create_dir_all(site_dir.join("css"))
+        .map_err(|e| format!("Lỗi tạo thư mục site/css: {}", e))?;
 
     // 3. Khởi tạo Template Engine (Tera) với các giao diện mặc định
     let mut tera = Tera::default();
     tera.add_raw_template("index.html", INDEX_TEMPLATE).unwrap();
-    tera.add_raw_template("course.html", COURSE_TEMPLATE).unwrap();
-    tera.add_raw_template("lesson.html", LESSON_TEMPLATE).unwrap();
+    tera.add_raw_template("course.html", COURSE_TEMPLATE)
+        .unwrap();
+    tera.add_raw_template("lesson.html", LESSON_TEMPLATE)
+        .unwrap();
 
     // 4. Quét thư mục `src/` để tìm các khóa học
     let src_dir = Path::new("src");
@@ -54,7 +58,10 @@ pub fn execute() -> Result<(), String> {
                         let lesson = parser::parse_lesson(&lesson_path)?;
                         lessons.push(lesson);
                     } else {
-                        println!("⚠️ Cảnh báo: Không tìm thấy file {} được nhắc đến trong SUMMARY.md", sum.file_path);
+                        println!(
+                            "⚠️ Cảnh báo: Không tìm thấy file {} được nhắc đến trong SUMMARY.md",
+                            sum.file_path
+                        );
                     }
                 }
 
@@ -78,7 +85,9 @@ pub fn execute() -> Result<(), String> {
     let mut context = Context::new();
     context.insert("config", &config);
     context.insert("courses", &courses);
-    let index_html = tera.render("index.html", &context).map_err(|e| format!("Lỗi render trang chủ: {}", e))?;
+    let index_html = tera
+        .render("index.html", &context)
+        .map_err(|e| format!("Lỗi render trang chủ: {}", e))?;
     fs::write(site_dir.join("index.html"), index_html).unwrap();
     println!("  ✅ Render: Trang chủ (index.html)");
 

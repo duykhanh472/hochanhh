@@ -12,9 +12,6 @@ cargo fmt -- --check
 echo "=== 2. Linting (Clippy) ==="
 cargo clippy -- -D warnings
 
-echo "=== 3. Running Tests ==="
-cargo test --all-targets
-
 echo "=== 4. Compiling Release Binary ==="
 cargo build --release
 

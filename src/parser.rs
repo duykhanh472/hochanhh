@@ -1,8 +1,8 @@
+use crate::youtube;
+use pulldown_cmark::{Parser as MarkdownParser, html};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
-use pulldown_cmark::{html, Parser as MarkdownParser};
-use crate::youtube;
 
 // =============================================================================
 // 1. ĐỊNH NGHĨA CÁC CẤU TRÚC DỮ LIỆU (STRUCTS)
@@ -37,10 +37,10 @@ pub struct Lesson {
 /// Cấu trúc tổng thể của một Khóa học (Ví dụ: jlpt-n1)
 #[derive(Debug, Serialize, Clone)]
 pub struct Course {
-    pub name: String,                  // Tên khóa học lấy từ tên thư mục (Ví dụ: "jlpt-n1")
-    pub slug: String,                  // Đường dẫn URL (Ví dụ: "jlpt-n1")
-    pub summary: Vec<LessonSummary>,   // Danh sách bài học lấy từ SUMMARY.md
-    pub lessons: Vec<Lesson>,          // Chi tiết nội dung của từng bài học trong khóa
+    pub name: String, // Tên khóa học lấy từ tên thư mục (Ví dụ: "jlpt-n1")
+    pub slug: String, // Đường dẫn URL (Ví dụ: "jlpt-n1")
+    pub summary: Vec<LessonSummary>, // Danh sách bài học lấy từ SUMMARY.md
+    pub lessons: Vec<Lesson>, // Chi tiết nội dung của từng bài học trong khóa
 }
 
 /// Cấu trúc phụ để parse phần Frontmatter bằng YAML ở đầu file Markdown
@@ -59,19 +59,19 @@ struct Frontmatter {
 pub fn parse_config<P: AsRef<Path>>(path: P) -> Result<SiteConfig, String> {
     let content = fs::read_to_string(path)
         .map_err(|e| format!("Không thể đọc file config hochanh.yml: {}", e))?;
-    
+
     let config: SiteConfig = serde_yaml::from_str(&content)
         .map_err(|e| format!("Định dạng file hochanh.yml không hợp lệ: {}", e))?;
-    
+
     Ok(config)
 }
 
 /// Nhiệm vụ 2: Đọc file SUMMARY.md để lấy danh sách bài học
 /// Hỗ trợ định dạng chuẩn: `- [Tên bài học](tên_file.md)`
 pub fn parse_summary<P: AsRef<Path>>(path: P) -> Result<Vec<LessonSummary>, String> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("Không thể đọc file SUMMARY.md: {}", e))?;
-    
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("Không thể đọc file SUMMARY.md: {}", e))?;
+
     let mut summaries = Vec::new();
 
     for (line_num, line) in content.lines().enumerate() {
@@ -81,16 +81,19 @@ pub fn parse_summary<P: AsRef<Path>>(path: P) -> Result<Vec<LessonSummary>, Stri
         }
 
         if trimmed.starts_with("- [") && trimmed.contains("](") && trimmed.ends_with(')') {
-            if let (Some(start_title), Some(end_title), Some(start_link)) = 
-                (trimmed.find('['), trimmed.find(']'), trimmed.find('(')) 
+            if let (Some(start_title), Some(end_title), Some(start_link)) =
+                (trimmed.find('['), trimmed.find(']'), trimmed.find('('))
             {
                 let title = trimmed[start_title + 1..end_title].to_string();
                 let file_path = trimmed[start_link + 1..trimmed.len() - 1].to_string();
-                
+
                 summaries.push(LessonSummary { title, file_path });
             }
         } else {
-            println!("⚠️  [Cảnh báo] Dòng số {} trong SUMMARY.md sai cú pháp mẫu `- [Title](file.md)`", line_num + 1);
+            println!(
+                "⚠️  [Cảnh báo] Dòng số {} trong SUMMARY.md sai cú pháp mẫu `- [Title](file.md)`",
+                line_num + 1
+            );
         }
     }
 
@@ -99,7 +102,8 @@ pub fn parse_summary<P: AsRef<Path>>(path: P) -> Result<Vec<LessonSummary>, Stri
 
 /// Nhiệm vụ 3: Tách Frontmatter, parse Markdown thành HTML, tự tạo link Embed Youtube
 pub fn parse_lesson<P: AsRef<Path>>(path: P) -> Result<Lesson, String> {
-    let file_name = path.as_ref()
+    let file_name = path
+        .as_ref()
         .file_name()
         .and_then(|n| n.to_str())
         .map(|s| s.replace(".md", ".html"))
@@ -110,12 +114,18 @@ pub fn parse_lesson<P: AsRef<Path>>(path: P) -> Result<Lesson, String> {
 
     // Tách phần Frontmatter nằm giữa hai cặp dấu `---`
     if !content.starts_with("---") {
-        return Err(format!("File bài học {:?} thiếu phần Frontmatter (---) ở đầu file!", path.as_ref()));
+        return Err(format!(
+            "File bài học {:?} thiếu phần Frontmatter (---) ở đầu file!",
+            path.as_ref()
+        ));
     }
 
     let parts: Vec<&str> = content.splitn(3, "---").collect();
     if parts.len() < 3 {
-        return Err(format!("Cấu trúc Frontmatter trong file {:?} không đóng đủ hai cặp '---'", path.as_ref()));
+        return Err(format!(
+            "Cấu trúc Frontmatter trong file {:?} không đóng đủ hai cặp '---'",
+            path.as_ref()
+        ));
     }
 
     let frontmatter_raw = parts[1];
@@ -126,7 +136,10 @@ pub fn parse_lesson<P: AsRef<Path>>(path: P) -> Result<Lesson, String> {
         .map_err(|e| format!("Lỗi cấu trúc YAML tại file {:?}: {}", path.as_ref(), e))?;
 
     // Xử lý tự động sinh mã nhúng YouTube dựa trên module youtube.rs (Bước 2)
-    let youtube_html = fm.youtube.as_ref().and_then(|url| youtube::get_embed_html(url));
+    let youtube_html = fm
+        .youtube
+        .as_ref()
+        .and_then(|url| youtube::get_embed_html(url));
 
     // Dùng pulldown-cmark chuyển đổi Markdown Body thành HTML chuỗi
     let mut content_html = String::new();
