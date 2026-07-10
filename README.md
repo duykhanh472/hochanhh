@@ -1,6 +1,8 @@
 # hochanh
 
-`hochanh` là một công cụ sinh trang tĩnh (Static Site Generator) siêu nhẹ và cực nhanh được viết bằng Rust, chuyên dụng để xây dựng các trang web bài giảng và khóa học trực tuyến từ các tệp tin Markdown.
+`hochanh` là công cụ cli dùng để tạo các trang web khóa học từ các tệp Markdown và video youtube nữa.
+
+*để khi nào ném ảnh hoặc/và trang demo lên sau*
 
 ## Installation
 
@@ -8,11 +10,14 @@
 
 ```bash
 # Bản sao dự án về máy
-git clone [https://github.com/yourusername/hochanh.git](https://github.com/yourusername/hochanh.git)
+git clone https://github.com/duykhanh472/hochanhh.git
 cd hochanh
 
-# Biên dịch phiên bản Release tối ưu tốc độ
+# Tạo binary
 cargo build --release
+# Hoặc chạy build.sh
+chmod +x build.sh
+./buildsh
 
 # (Tùy chọn) Thêm vào hệ thống để gọi trực tiếp ở mọi nơi
 cargo install --path .
@@ -20,7 +25,7 @@ cargo install --path .
 
 ## Usage
 
-`hochanh` cung cấp 3 câu lệnh cơ bản để quản lý toàn bộ chu trình xây dựng trang học tập:
+3 câu lệnh:
 
 ### 1. Khởi tạo một dự án khóa học mới
 
@@ -37,7 +42,7 @@ Cấu trúc được sinh ra bao gồm:
 * **`src/sample-course/SUMMARY.md`**: Tệp điều hướng và quản lý danh sách mục lục bài học.
 * **`src/sample-course/lesson1.md`**: Bài học mẫu chứa Frontmatter (YAML) để nhập tiêu đề và link video YouTube.
 
-### 2. Biên dịch thành trang tĩnh HTML
+### 2. Biên dịch thành trang HTML
 
 Di chuyển vào thư mục gốc của dự án (nơi có file `hochanh.yml`) và chạy lệnh `build` để dịch toàn bộ Markdown thành HTML.
 
@@ -102,9 +107,7 @@ youtube: [https://www.youtube.com/watch?v=1SGCu28948U](https://www.youtube.com/w
 
 ## Contributing
 
-Các yêu cầu đóng góp (Pull requests) luôn được chào đón. Đối với các thay đổi lớn, vui lòng mở một Issue trước để chúng ta cùng thảo luận về những gì bạn muốn thay đổi hoặc cải tiến.
-
-Vui lòng đảm bảo cập nhật hoặc bổ sung các test case tương ứng (chạy `cargo test`) trước khi gửi bài.
+Nhớ cập nhật hoặc bổ sung các test case tương ứng (chạy `cargo test`) trước khi mở PR nhé.
 
 ## License
 
