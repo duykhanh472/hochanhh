@@ -1,6 +1,5 @@
-use std::fs;
+use std::{fs, io};
 use std::path::Path;
-use std::io::{self, Write};
 
 /// Hàm thực thi lệnh tạo dự án mới
 pub fn execute(target_path: &Path) -> io::Result<()> {

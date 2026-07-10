@@ -1,15 +1,22 @@
 [package]
 name = "hochanh"
 version = "0.1.0"
-edition = "2021"
-authors = ["Của bạn <email@example.com>"]
-description = "Static Site Generator chuyên dụng cho các khóa học trực tuyến"
+edition = "2024"
+authors = ["không một ai"]
+description = "Một chương trình tạo trang khóa học, đại khái là ăn cắp ý tưởng từ mdbook"
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
-pulldown-cmark = "0.11"
-tera = "1.20"
+pulldown-cmark = "0.13.4"
+tera = "2.0.0"
 walkdir = "2.5"
 tiny_http = "0.12"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

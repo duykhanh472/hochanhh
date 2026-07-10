@@ -4,12 +4,12 @@ use tera::{Tera, Context};
 use crate::parser::{self, Course, Lesson};
 
 pub fn execute() -> Result<(), String> {
-    println!("🏗️  Bắt đầu quá trình build trang tĩnh...");
+    println!("Bắt đầu tạo trang...");
 
     // 1. Đọc file cấu hình tổng
     let config_path = Path::new("hochanh.yml");
     if !config_path.exists() {
-        return Err("Không tìm thấy file hochanh.yml. Hãy chắc chắn bạn đang ở thư mục gốc của dự án.".to_string());
+        return Err("Tệp hochanh.yml đâu rồi bạn ơi?".to_string());
     }
     let config = parser::parse_config(config_path)?;
 
@@ -107,7 +107,7 @@ pub fn execute() -> Result<(), String> {
         }
     }
 
-    println!("🎉 Hoàn tất! Mã nguồn đã được build thành công ra thư mục `site/`.");
+    println!("Xong, kiểm tra thư mục `site/` xem bạn ơi.");
     Ok(())
 }
 
