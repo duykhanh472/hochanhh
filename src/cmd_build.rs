@@ -132,10 +132,6 @@ pub fn execute() -> Result<(), String> {
 // HTML / CSS TEMPLATES (Nhúng trực tiếp để chạy được ngay)
 // =============================================================================
 
-// =============================================================================
-// HTML / CSS TEMPLATES (Nhúng trực tiếp để chạy được ngay)
-// =============================================================================
-
 const CSS_STYLES: &str = r#"
 /* Sử dụng System Fonts và tối ưu hiển thị */
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #f9f9fa; color: #333; line-height: 1.6; }
@@ -199,15 +195,19 @@ ul.section-list a.active { background: #e0e7ff; color: #2563eb; font-weight: 600
 .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 .markdown-body img { max-width: 100%; height: auto; border-radius: 4px; }
 
-/* PC Layout */
+/* PC Layout: Khóa cứng Viewport để kích hoạt cuộn độc lập 2 bên */
 @media (min-width: 768px) {
-    .site-header { padding: 1rem 2rem; }
-    .lesson-topbar { padding: 1rem 2rem; }
-    .menu-toggle { display: none; }
-    .sidebar { position: static; transform: none; width: 320px; z-index: 1; box-shadow: none; border-right: 1px solid #e5e7eb; }
-    .sidebar-header { display: none; }
-    .overlay { display: none !important; }
-    .content { padding: 2rem 3rem; }
+    body.lesson-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    body.lesson-page .site-header { padding: 1rem 2rem; flex-shrink: 0; }
+    body.lesson-page .lesson-topbar { padding: 1rem 2rem; flex-shrink: 0; }
+    body.lesson-page .menu-toggle { display: none; }
+    
+    body.lesson-page .lesson-layout { flex: 1; overflow: hidden; }
+    body.lesson-page .sidebar { position: static; transform: none; width: 320px; z-index: 1; box-shadow: none; border-right: 1px solid #e5e7eb; height: 100%; }
+    body.lesson-page .sidebar-header { display: none; }
+    body.lesson-page .overlay { display: none !important; }
+    
+    body.lesson-page .content { height: 100%; overflow-y: auto; padding: 2rem 3rem; margin: 0; max-width: none; }
 }
 "#;
 
@@ -218,12 +218,12 @@ const INDEX_TEMPLATE: &str = r#"
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.site_name }}</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="data:,">
 </head>
 <body>
     <header class="site-header">
-        <h2><a href="/">{{ config.site_name }}</a></h2>
+        <h2><a href="index.html">{{ config.site_name }}</a></h2>
     </header>
     <div class="container">
         <h1>Danh sách khóa học</h1>
@@ -231,13 +231,13 @@ const INDEX_TEMPLATE: &str = r#"
             {% for item in global_menu %}
                 {% if item.type == "Course" %}
                     <div class="card">
-                        <h3><a href="/{{ item.slug }}/">{{ item.title }}</a></h3>
+                        <h3><a href="{{ item.slug }}/index.html">{{ item.title }}</a></h3>
                     </div>
                 {% elif item.type == "Section" %}
                     <h2 class="section-header">{{ item.title }}</h2>
                     {% for course in item.courses %}
                         <div class="card">
-                            <h3><a href="/{{ course.slug }}/">{{ course.title }}</a></h3>
+                            <h3><a href="{{ course.slug }}/index.html">{{ course.title }}</a></h3>
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -255,15 +255,15 @@ const COURSE_TEMPLATE: &str = r#"
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ course.name }} - {{ config.site_name }}</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link rel="icon" href="data:,">
 </head>
 <body>
     <header class="site-header">
-        <h2><a href="/">{{ config.site_name }}</a></h2>
+        <h2><a href="../index.html">{{ config.site_name }}</a></h2>
     </header>
     <div class="container">
-        <div class="breadcrumb"><a href="/">Trang chủ</a> / {{ course.name }}</div>
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> / {{ course.name }}</div>
         <h1>Lộ trình khóa học: {{ course.name }}</h1>
         <div class="timeline">
             {% for section in course.summary %}
@@ -293,17 +293,17 @@ const LESSON_TEMPLATE: &str = r#"
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ lesson.title }} - {{ config.site_name }}</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link rel="icon" href="data:,">
 </head>
-<body>
+<body class="lesson-page">
     <header class="site-header">
-        <h2><a href="/">{{ config.site_name }}</a></h2>
+        <h2><a href="../index.html">{{ config.site_name }}</a></h2>
     </header>
 
-    <!-- Thanh Topbar (Breadcrumb cho PC & Nút Menu cho Mobile) -->
+    <!-- Thanh Topbar điều hướng tương đối -->
     <div class="lesson-topbar">
-        <a href="/{{ course.slug }}/" class="back-link">❮ {{ course.name }}</a>
+        <a href="index.html" class="back-link">❮ {{ course.name }}</a>
         <button class="menu-toggle" onclick="toggleMenu()">
             <span class="menu-toggle-icon">☰</span>
             Mục lục
@@ -311,16 +311,16 @@ const LESSON_TEMPLATE: &str = r#"
     </div>
 
     <div class="lesson-layout">
-        <!-- Overlay nền đen mờ khi mở menu trên Mobile -->
+        <!-- Overlay nền tối trên Mobile -->
         <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
-        <!-- Left Menu (Mặc định ẩn bên trái trên Mobile, cố định trên PC) -->
+        <!-- Left Menu (Hỗ trợ cuộn độc lập) -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3>Nội dung khóa học</h3>
                 <button class="close-btn" onclick="toggleMenu()">×</button>
             </div>
-            <div class="sidebar-content">
+            <div class="sidebar-content" id="sidebar-content">
                 {% for section in course.summary %}
                     {% if section.section_title != "" %}
                         <h4 class="section-title">{{ section.section_title }}</h4>
@@ -328,7 +328,7 @@ const LESSON_TEMPLATE: &str = r#"
                     <ul class="section-list">
                         {% for item in section.lessons %}
                         <li>
-                            <a href="/{{ course.slug }}/{{ item.url }}" class="{% if item.url == lesson.file_name %}active{% endif %}">
+                            <a href="{{ item.url }}" class="{% if item.url == lesson.file_name %}active{% endif %}">
                                 {{ item.title }}
                             </a>
                         </li>
@@ -340,7 +340,6 @@ const LESSON_TEMPLATE: &str = r#"
 
         <!-- Nội dung bài học chính -->
         <main class="content">
-            <!-- Icon Play và Tiêu đề ngay phía trên Video -->
             <h1 class="lesson-main-title">{{ lesson.title }}</h1>
             
             {% if lesson.youtube_html %}
@@ -355,12 +354,21 @@ const LESSON_TEMPLATE: &str = r#"
         </main>
     </div>
 
-    <!-- Script Vanilla JS siêu nhẹ để đóng/mở menu trên Mobile -->
     <script>
+        // Đóng mở menu trên thiết bị di động
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('open');
         }
+
+        // Tự động cuộn phần Sidebar đến vị trí bài học đang Active
+        document.addEventListener("DOMContentLoaded", function() {
+            const activeLesson = document.querySelector('.sidebar a.active');
+            if (activeLesson) {
+                // Cuộn mượt đưa phần tử active vào giữa tầm nhìn của sidebar-content
+                activeLesson.scrollIntoView({ block: 'center', behavior: 'instant' });
+            }
+        });
     </script>
 </body>
 </html>
