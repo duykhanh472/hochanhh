@@ -96,30 +96,55 @@ pub fn execute() -> Result<(), String> {
     let index_html = tera
         .render("index.html", &context)
         .map_err(|e| format!("Lỗi render trang chủ: {}", e))?;
-    fs::write(site_dir.join("index.html"), index_html).unwrap();
+    fs::write(site_dir.join("index.html"), index_html)
+        .map_err(|e| format!("Lỗi ghi file index.html tổng: {}", e))?;
     println!("  ✅ Render: Trang chủ (index.html)");
 
     // Render các trang Khóa học và Bài học
     for course in &courses {
         let course_dir = site_dir.join(&course.slug);
-        fs::create_dir_all(&course_dir).unwrap();
+        fs::create_dir_all(&course_dir)
+            .map_err(|e| format!("Lỗi tạo thư mục khóa học {}: {}", course.slug, e))?;
 
         // Trang danh sách bài học của khóa
         let mut ctx = Context::new();
         ctx.insert("config", &config);
         ctx.insert("course", course);
-        let course_html = tera.render("course.html", &ctx).unwrap();
-        fs::write(course_dir.join("index.html"), course_html).unwrap();
+        let course_html = tera
+            .render("course.html", &ctx)
+            .map_err(|e| format!("Lỗi render trang khóa học {}: {}", course.slug, e))?;
+        fs::write(course_dir.join("index.html"), course_html)
+            .map_err(|e| format!("Lỗi ghi file index.html cho khóa {}: {}", course.slug, e))?;
         println!("  ✅ Render Khóa học: {}", course.slug);
 
-        // Các trang chi tiết bài học
-        for lesson in &course.lessons {
+        // Các trang chi tiết bài học (Sử dụng enumerate để lấy chỉ mục `i` tự động)
+        for (i, lesson) in course.lessons.iter().enumerate() {
             let mut ctx_lesson = Context::new();
             ctx_lesson.insert("config", &config);
             ctx_lesson.insert("course", course);
             ctx_lesson.insert("lesson", lesson);
-            let lesson_html = tera.render("lesson.html", &ctx_lesson).unwrap();
-            fs::write(course_dir.join(&lesson.file_name), lesson_html).unwrap();
+
+            // Xử lý bài học trước đó (Bài trước)
+            if i > 0 {
+                let mut prev = std::collections::HashMap::new();
+                prev.insert("title", &course.lessons[i - 1].title);
+                prev.insert("url", &course.lessons[i - 1].file_name);
+                ctx_lesson.insert("prev_lesson", &prev); // Đã sửa: Ghi vào đúng ctx_lesson
+            }
+
+            // Xử lý bài học kế tiếp (Bài sau - Sửa lỗi so sánh kiểu dữ liệu ở đây)
+            if i + 1 < course.lessons.len() {
+                let mut next = std::collections::HashMap::new();
+                next.insert("title", &course.lessons[i + 1].title);
+                next.insert("url", &course.lessons[i + 1].file_name);
+                ctx_lesson.insert("next_lesson", &next); // Đã sửa: Ghi vào đúng ctx_lesson
+            }
+
+            let lesson_html = tera
+                .render("lesson.html", &ctx_lesson)
+                .map_err(|e| format!("Lỗi render bài học {}: {}", lesson.file_name, e))?;
+            fs::write(course_dir.join(&lesson.file_name), lesson_html)
+                .map_err(|e| format!("Lỗi ghi file bài học {}: {}", lesson.file_name, e))?;
             println!("    - Bài học: {}", lesson.file_name);
         }
     }
@@ -195,6 +220,14 @@ ul.section-list a.active { background: #e0e7ff; color: #2563eb; font-weight: 600
 .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 .markdown-body img { max-width: 100%; height: auto; border-radius: 4px; }
 
+/* Navigation giữa các bài học */
+.lesson-nav { display: flex; justify-content: space-between; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb; gap: 1rem; }
+.nav-btn { display: inline-flex; align-items: center; padding: 0.6rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; color: #374151; font-weight: 500; background: #fff; transition: all 0.2s; max-width: 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-btn:hover { background: #f3f4f6; border-color: #2563eb; color: #2563eb; text-decoration: none; }
+.nav-btn.prev::before { content: "❮ "; margin-right: 0.5rem; font-size: 0.85rem; }
+.nav-btn.next::after { content: " ❯"; margin-left: 0.5rem; font-size: 0.85rem; }
+.nav-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; background: #f9f9fa; color: #9ca3af; }
+
 /* PC Layout: Khóa cứng Viewport để kích hoạt cuộn độc lập 2 bên */
 @media (min-width: 768px) {
     body.lesson-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -213,7 +246,7 @@ ul.section-list a.active { background: #e0e7ff; color: #2563eb; font-weight: 600
 
 const INDEX_TEMPLATE: &str = r#"
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ config.lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -226,7 +259,7 @@ const INDEX_TEMPLATE: &str = r#"
         <h2><a href="index.html">{{ config.site_name }}</a></h2>
     </header>
     <div class="container">
-        <h1>Danh sách khóa học</h1>
+        <h1></h1>
         <div class="grid">
             {% for item in global_menu %}
                 {% if item.type == "Course" %}
@@ -250,7 +283,7 @@ const INDEX_TEMPLATE: &str = r#"
 
 const COURSE_TEMPLATE: &str = r#"
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ config.lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -264,7 +297,7 @@ const COURSE_TEMPLATE: &str = r#"
     </header>
     <div class="container">
         <div class="breadcrumb"><a href="../index.html">Trang chủ</a> / {{ course.name }}</div>
-        <h1>Lộ trình khóa học: {{ course.name }}</h1>
+        <h1>{{ course.name }}</h1>
         <div class="timeline">
             {% for section in course.summary %}
                 {% if section.section_title != "" %}
@@ -288,7 +321,7 @@ const COURSE_TEMPLATE: &str = r#"
 
 const LESSON_TEMPLATE: &str = r#"
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ config.lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -301,23 +334,20 @@ const LESSON_TEMPLATE: &str = r#"
         <h2><a href="../index.html">{{ config.site_name }}</a></h2>
     </header>
 
-    <!-- Thanh Topbar điều hướng tương đối -->
     <div class="lesson-topbar">
         <a href="index.html" class="back-link">❮ {{ course.name }}</a>
         <button class="menu-toggle" onclick="toggleMenu()">
             <span class="menu-toggle-icon">☰</span>
-            Mục lục
+            Contents
         </button>
     </div>
 
     <div class="lesson-layout">
-        <!-- Overlay nền tối trên Mobile -->
         <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
-        <!-- Left Menu (Hỗ trợ cuộn độc lập) -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h3>Nội dung khóa học</h3>
+                <h3>Content</h3>
                 <button class="close-btn" onclick="toggleMenu()">×</button>
             </div>
             <div class="sidebar-content" id="sidebar-content">
@@ -338,7 +368,6 @@ const LESSON_TEMPLATE: &str = r#"
             </div>
         </aside>
 
-        <!-- Nội dung bài học chính -->
         <main class="content">
             <h1 class="lesson-main-title">{{ lesson.title }}</h1>
             
@@ -350,6 +379,20 @@ const LESSON_TEMPLATE: &str = r#"
             
             <div class="markdown-body">
                 {{ lesson.content_html | safe }}
+            </div>
+
+            <div class="lesson-nav">
+                {% if prev_lesson %}
+                    <a href="{{ prev_lesson.url }}" class="nav-btn prev" title="{{ prev_lesson.title }}">Bài trước: {{ prev_lesson.title }}</a>
+                {% else %}
+                    <div class="nav-btn prev disabled">Trước</div>
+                {% endif %}
+
+                {% if next_lesson %}
+                    <a href="{{ next_lesson.url }}" class="nav-btn next" title="{{ next_lesson.title }}">Bài sau: {{ next_lesson.title }}</a>
+                {% else %}
+                    <div class="nav-btn next disabled">Sau</div>
+                {% endif %}
             </div>
         </main>
     </div>

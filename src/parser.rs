@@ -14,8 +14,14 @@ pub struct SiteConfig {
     pub site_name: String,
     pub description: String,
     pub author: String,
+    #[serde(default = "default_lang")]
+    pub lang: String,
     // Sử dụng kiểu Mapping của serde_yaml để nhận dạng cấu trúc động
     pub course: Option<Vec<serde_yaml::Mapping>>,
+}
+
+fn default_lang() -> String {
+    "en".to_string()
 }
 
 // Struct để đẩy vào Template (Tera) cho Global Sidebar
@@ -54,7 +60,7 @@ pub struct Lesson {
 pub struct Course {
     pub name: String,
     pub slug: String,
-    pub summary: Vec<CourseSection>, // Đổi từ Vec<LessonSummary> thành Vec<CourseSection>
+    pub summary: Vec<CourseSection>,
     pub lessons: Vec<Lesson>,
 }
 
