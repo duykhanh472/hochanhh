@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 mod cmd_build;
+mod cmd_generate;
 mod cmd_new;
 mod cmd_serve;
 mod parser;
@@ -30,6 +31,17 @@ enum Commands {
     Build,
     /// Chạy một local web server tại cổng 3000 để xem trước giao diện học tập
     Serve,
+    /// Sinh tự động các tệp Markdown từ cấu trúc của SUMMARY.md
+    #[command(name = "generate", alias = "gen")]
+    Generate {
+        /// Thư mục khóa học chứa tệp SUMMARY.md (Mặc định là thư mục hiện tại)
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Đường dẫn tới tệp text chứa danh sách link YouTube (mỗi dòng 1 link)
+        #[arg(short = 'y', long = "youtube")]
+        youtube: Option<PathBuf>,
+    },
 }
 
 fn main() {
@@ -57,6 +69,12 @@ fn main() {
             // Chạy logic serve thay vì chỉ in ra màn hình
             if let Err(e) = cmd_serve::execute() {
                 eprintln!("❌ LỖI SERVER: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Generate { path, youtube } => {
+            if let Err(e) = cmd_generate::execute(path, youtube) {
+                eprintln!("❌ LỖI GENERATE: {}", e);
                 std::process::exit(1);
             }
         }

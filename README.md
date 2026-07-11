@@ -42,30 +42,46 @@ Cấu trúc được sinh ra bao gồm:
 * **`src/sample-course/SUMMARY.md`**: Tệp điều hướng và quản lý danh sách mục lục bài học.
 * **`src/sample-course/lesson1.md`**: Bài học mẫu chứa Frontmatter (YAML) để nhập tiêu đề và link video YouTube.
 
-### 2. Biên dịch thành trang HTML
+### 1.5. Tạo toàn bộ tệp từ SUMMARY.md
 
-Di chuyển vào thư mục gốc của dự án (nơi có file `hochanh.yml`) và chạy lệnh `build` để dịch toàn bộ Markdown thành HTML.
+Nếu bạn chỉ muốn tạo file cơ bản từ `SUMMARY.md`: `cd` vào thư mục chứa file `SUMMARY.md` của khoá học (ví dụ: `src/n2-grammar/`), sau đó gõ:
+
+```bash
+hochanh gen .
+```
+
+
+Nếu bạn muốn tạo file và tự động Map link YouTube: giả sử bạn có tệp `links.txt` chứa danh sách các link video. Chạy lệnh sau để hệ thống tự động chèn từng dòng một vào Frontmatter:
+
+```bash
+hochanh gen . -y links.txt
+
+```
+
+Nếu số dòng text trong `links.txt` lệch so với `SUMMARY.md` thì sẽ không chạy được.
+
+### 2. Tạo HTML, lưu ở thư mục `site/`
+
+Di chuyển vào thư mục gốc của dự án (nơi có file `hochanh.yml`) và chạy lệnh `build` để chuyển toàn bộ Markdown thành HTML.
 
 ```bash
 hochanh build
 
 ```
 
-Toàn bộ mã nguồn trang web tĩnh thành phẩm sẽ được xuất ra thư mục `site/`.
-
 ### 3. Khởi chạy Local Server để xem trước
 
-Để chạy thử nghiệm và xem trước giao diện trang học tập trực tiếp trên máy tính, hãy chạy lệnh `serve`:
+Để chạy thử nghiệm và xem trước giao diện trang, chạy lệnh `serve`:
 
 ```bash
 hochanh serve
 ```
 
-Hệ thống sẽ tự động build lại dữ liệu và khởi chạy một HTTP Server siêu nhẹ tại địa chỉ: `http://localhost:3000`.
+Hệ thống sẽ tự động build lại dữ liệu và khởi chạy một HTTP Server tại: `http://localhost:3000`. Giờ bạn copy cái link này rồi paste vào cái thanh tìm kiếm của trình duyệt.
 
-## Directory Structure (Cấu trúc thư mục)
+## Cấu trúc thư mục
 
-Để `hochanh` có thể quét và biên dịch chính xác, dự án của bạn cần tuân thủ cấu trúc sắp xếp phân cấp thư mục dưới đây. Bạn có thể tự tay tạo thêm các thư mục khóa học mới bên trong `src/` theo quy tắc này:
+Để `hochanh` có thể tạo khóa học, dự án của bạn cần tuân thủ cấu trúc sắp xếp phân cấp thư mục dưới đây. Bạn có thể tự tay tạo thêm các thư mục khóa học mới bên trong `src/` theo quy tắc này (Thực ra cái này phức tạp vl nên bạn chỉ cần chạy `hochanh new [ten-khoa-hoc-muon-tao]` rồi dùng là được):
 
 ```text
 my-awesome-course/
@@ -84,7 +100,7 @@ my-awesome-course/
 
 ### Quy tắc sắp xếp nội dung:
 
-1. **Khóa học (Course):** Mỗi thư mục con nằm trực tiếp trong `src/` được tính là một khóa học độc lập. Tên thư mục sẽ được dùng làm đường dẫn URL (Ví dụ: `src/toan-cao-cap/` sẽ sinh ra liên kết `localhost:3000/toan-cao-cap/`).
+1. **Khóa học (Course):** Mỗi thư mục con nằm trực tiếp trong `src/` được tính là một khóa học riêng. Tên thư mục sẽ được dùng làm đường dẫn URL (Ví dụ: `src/toan-cao-cap/` sẽ sinh ra liên kết `localhost:3000/toan-cao-cap/`).
 2. **Quản lý danh sách bài học (`SUMMARY.md`):** Nằm bắt buộc bên trong mỗi thư mục khóa học. File này dùng định dạng danh sách Markdown để định nghĩa thứ tự và tên hiển thị của bài học trên thanh Sidebar:
 ```markdown
 # Mục lục khóa học
@@ -99,7 +115,7 @@ my-awesome-course/
 ---
 title: Bài học 1: Khái niệm cơ bản
 description: Tóm tắt nội dung bài học trong 1 câu ngắn gọn.
-youtube: [https://www.youtube.com/watch?v=1SGCu28948U](https://www.youtube.com/watch?v=1SGCu28948U)
+youtube: https://www.youtube.com/watch?v=1SGCu28948U
 ---
 (Nội dung bài học viết bằng Markdown bình thường ở đây...)
 
