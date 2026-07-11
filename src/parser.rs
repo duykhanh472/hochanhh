@@ -9,18 +9,33 @@ use std::path::Path;
 // =============================================================================
 
 /// Cấu hình tổng của trang web (đọc từ hochanh.yml)
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SiteConfig {
     pub site_name: String,
     pub description: String,
     pub author: String,
+    // Sử dụng kiểu Mapping của serde_yaml để nhận dạng cấu trúc động
+    pub course: Option<Vec<serde_yaml::Mapping>>,
 }
 
-/// Thông tin tóm tắt của một bài học (đọc từ SUMMARY.md)
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LessonSummary {
+// Struct để đẩy vào Template (Tera) cho Global Sidebar
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type")] // Giúp Tera phân biệt được Course và Section
+pub enum GlobalSidebarItem {
+    Course {
+        title: String,
+        slug: String,
+    },
+    Section {
+        title: String,
+        courses: Vec<CourseInfo>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CourseInfo {
     pub title: String,
-    pub file_path: String, // Ví dụ: "lesson1.md"
+    pub slug: String,
 }
 
 /// Dữ liệu đầy đủ của một bài học sau khi đã parse xong xuôi
@@ -37,10 +52,10 @@ pub struct Lesson {
 /// Cấu trúc tổng thể của một Khóa học (Ví dụ: jlpt-n1)
 #[derive(Debug, Serialize, Clone)]
 pub struct Course {
-    pub name: String, // Tên khóa học lấy từ tên thư mục (Ví dụ: "jlpt-n1")
-    pub slug: String, // Đường dẫn URL (Ví dụ: "jlpt-n1")
-    pub summary: Vec<LessonSummary>, // Danh sách bài học lấy từ SUMMARY.md
-    pub lessons: Vec<Lesson>, // Chi tiết nội dung của từng bài học trong khóa
+    pub name: String,
+    pub slug: String,
+    pub summary: Vec<CourseSection>, // Đổi từ Vec<LessonSummary> thành Vec<CourseSection>
+    pub lessons: Vec<Lesson>,
 }
 
 /// Cấu trúc phụ để parse phần Frontmatter bằng YAML ở đầu file Markdown
@@ -51,6 +66,63 @@ struct Frontmatter {
     youtube: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct CourseSection {
+    pub section_title: String, // Tiêu đề Section (vd: "Ngữ pháp N2", "Chủ đề gì đó")
+    pub lessons: Vec<LessonItem>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LessonItem {
+    pub title: String,
+    pub file: String,
+    pub url: String, // Link html tương ứng
+}
+
+impl SiteConfig {
+    // Hàm này dịch dữ liệu từ hochanh.yml sang dạng mảng Sidebar dễ dùng
+    pub fn get_sidebar_menu(&self) -> Vec<GlobalSidebarItem> {
+        let mut menu = Vec::new();
+
+        if let Some(course_list) = &self.course {
+            for item in course_list {
+                for (key, value) in item {
+                    let title = key.as_str().unwrap_or("").to_string();
+
+                    if let Some(slug) = value.as_str() {
+                        // Trường hợp 1: Là một khóa học trực tiếp (ví dụ: "JLPT N2文法": "n2-bunpo/")
+                        let clean_slug = slug.trim_matches('/').to_string();
+                        menu.push(GlobalSidebarItem::Course {
+                            title,
+                            slug: clean_slug,
+                        });
+                    } else if let Some(sub_list) = value.as_sequence() {
+                        // Trường hợp 2: Là một Section (chứa nhiều khóa học bên trong)
+                        let mut sub_courses = Vec::new();
+                        for sub_item in sub_list {
+                            if let Some(sub_map) = sub_item.as_mapping() {
+                                for (sub_k, sub_v) in sub_map {
+                                    let sub_title = sub_k.as_str().unwrap_or("").to_string();
+                                    let sub_slug =
+                                        sub_v.as_str().unwrap_or("").trim_matches('/').to_string();
+                                    sub_courses.push(CourseInfo {
+                                        title: sub_title,
+                                        slug: sub_slug,
+                                    });
+                                }
+                            }
+                        }
+                        menu.push(GlobalSidebarItem::Section {
+                            title,
+                            courses: sub_courses,
+                        });
+                    }
+                }
+            }
+        }
+        menu
+    }
+}
 // =============================================================================
 // 2. CÁC HÀM XỬ LÝ PARSE DỮ LIỆU
 // =============================================================================
@@ -68,36 +140,50 @@ pub fn parse_config<P: AsRef<Path>>(path: P) -> Result<SiteConfig, String> {
 
 /// Nhiệm vụ 2: Đọc file SUMMARY.md để lấy danh sách bài học
 /// Hỗ trợ định dạng chuẩn: `- [Tên bài học](tên_file.md)`
-pub fn parse_summary<P: AsRef<Path>>(path: P) -> Result<Vec<LessonSummary>, String> {
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("Không thể đọc file SUMMARY.md: {}", e))?;
+pub fn parse_summary(content: &str) -> Vec<CourseSection> {
+    let mut sections = Vec::new();
 
-    let mut summaries = Vec::new();
+    // Nếu file không có thẻ '#' nào ở đầu, ta tạo một section mặc định không tên
+    let mut current_section = CourseSection {
+        section_title: String::new(),
+        lessons: Vec::new(),
+    };
 
-    for (line_num, line) in content.lines().enumerate() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
-            continue; // Bỏ qua dòng trống hoặc tiêu đề lớn h1 trong file summary
-        }
+    for line in content.lines() {
+        let line = line.trim();
 
-        if trimmed.starts_with("- [") && trimmed.contains("](") && trimmed.ends_with(')') {
-            if let (Some(start_title), Some(end_title), Some(start_link)) =
-                (trimmed.find('['), trimmed.find(']'), trimmed.find('('))
-            {
-                let title = trimmed[start_title + 1..end_title].to_string();
-                let file_path = trimmed[start_link + 1..trimmed.len() - 1].to_string();
-
-                summaries.push(LessonSummary { title, file_path });
+        // 1. Nếu gặp Section mới (bắt đầu bằng # )
+        if let Some(stripped) = line.strip_prefix("# ") {
+            // Lưu section trước đó (nếu đã có bài học bên trong)
+            if !current_section.lessons.is_empty() || !current_section.section_title.is_empty() {
+                sections.push(current_section);
             }
-        } else {
-            println!(
-                "⚠️  [Cảnh báo] Dòng số {} trong SUMMARY.md sai cú pháp mẫu `- [Title](file.md)`",
-                line_num + 1
-            );
+            // Tạo section mới
+            current_section = CourseSection {
+                section_title: stripped.trim().to_string(),
+                lessons: Vec::new(),
+            };
+        }
+        // 2. Nếu gặp Link bài học (bắt đầu bằng - [ )
+        else if line.starts_with("- [")
+            && let (Some(end_title), Some(end_link)) = (line.find("]("), line.rfind(')'))
+        {
+            let title = line[3..end_title].to_string();
+            let file = line[end_title + 2..end_link].to_string();
+            let url = file.replace(".md", ".html"); // Map sang file HTML thành phẩm
+
+            current_section
+                .lessons
+                .push(LessonItem { title, file, url });
         }
     }
 
-    Ok(summaries)
+    // Đẩy section cuối cùng vào danh sách
+    if !current_section.lessons.is_empty() || !current_section.section_title.is_empty() {
+        sections.push(current_section);
+    }
+
+    sections
 }
 
 /// Nhiệm vụ 3: Tách Frontmatter, parse Markdown thành HTML, tự tạo link Embed Youtube

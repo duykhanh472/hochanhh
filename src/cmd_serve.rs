@@ -15,9 +15,9 @@ pub fn execute() -> Result<(), String> {
     let server = Server::http(addr).map_err(|e| format!("Lỗi khởi tạo server: {}", e))?;
 
     println!("\n=======================================================");
-    println!("🌐 Server đã khởi chạy thành công!");
-    println!("👉 Vui lòng mở trình duyệt và truy cập: http://{}", addr);
-    println!("🛑 Bấm Ctrl + C trên Terminal để dừng server.");
+    println!("Server đã khởi chạy thành công!");
+    println!("Vui lòng mở trình duyệt và truy cập: http://{}", addr);
+    println!("Bấm Ctrl + C trên Terminal để dừng server.");
     println!("=======================================================\n");
 
     // 3. Vòng lặp lắng nghe và xử lý request

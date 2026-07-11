@@ -48,20 +48,27 @@ pub fn execute() -> Result<(), String> {
             let summary_path = path.join("SUMMARY.md");
 
             if summary_path.exists() {
-                let summary = parser::parse_summary(&summary_path)?;
+                // 1. Phải đọc file ra String trước
+                let summary_content = fs::read_to_string(&summary_path)
+                    .map_err(|e| format!("Lỗi đọc file SUMMARY: {}", e))?;
+
+                // 2. Truyền &summary_content vào và xóa dấu ? ở cuối
+                let summary = parser::parse_summary(&summary_content);
                 let mut lessons: Vec<Lesson> = Vec::new();
 
-                // Lặp qua từng bài học trong SUMMARY.md để parse
-                for sum in &summary {
-                    let lesson_path = path.join(&sum.file_path);
-                    if lesson_path.exists() {
-                        let lesson = parser::parse_lesson(&lesson_path)?;
-                        lessons.push(lesson);
-                    } else {
-                        println!(
-                            "⚠️ Cảnh báo: Không tìm thấy file {} được nhắc đến trong SUMMARY.md",
-                            sum.file_path
-                        );
+                // Lặp qua từng section rồi mới lặp qua từng bài học
+                for section in &summary {
+                    for item in &section.lessons {
+                        let lesson_path = path.join(&item.file);
+                        if lesson_path.exists() {
+                            let lesson = parser::parse_lesson(&lesson_path)?;
+                            lessons.push(lesson);
+                        } else {
+                            println!(
+                                "⚠️ Cảnh báo: Không tìm thấy file {} được nhắc đến trong SUMMARY.md",
+                                item.file
+                            );
+                        }
                     }
                 }
 
@@ -85,6 +92,7 @@ pub fn execute() -> Result<(), String> {
     let mut context = Context::new();
     context.insert("config", &config);
     context.insert("courses", &courses);
+    context.insert("global_menu", &config.get_sidebar_menu());
     let index_html = tera
         .render("index.html", &context)
         .map_err(|e| format!("Lỗi render trang chủ: {}", e))?;
@@ -125,7 +133,7 @@ pub fn execute() -> Result<(), String> {
 // =============================================================================
 
 const CSS_STYLES: &str = r#"
-/* Sử dụng System Fonts và tối ưu hiển thị như yêu cầu */
+/* Sử dụng System Fonts và tối ưu hiển thị */
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #f9f9fa; color: #333; line-height: 1.6; }
 a { text-decoration: none; color: #2563eb; }
 a:hover { text-decoration: underline; }
@@ -133,16 +141,32 @@ header { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #e5e7eb;
 .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
 .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.section-header { grid-column: 1 / -1; margin-top: 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
 
-/* Layout trang bài học */
-.lesson-layout { display: flex; min-height: calc(100vh - 60px); }
-.sidebar { width: 300px; background: #fff; border-right: 1px solid #e5e7eb; padding: 1.5rem; }
-.sidebar ul { list-style: none; padding: 0; }
-.sidebar li { margin-bottom: 0.5rem; }
-.sidebar a { display: block; padding: 0.5rem; border-radius: 4px; color: #4b5563; }
+/* Section List UI */
+.section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.5rem 0; color: #111827; }
+ul.section-list { list-style: none; padding: 0; margin: 0; }
+ul.section-list li { margin-bottom: 0.25rem; }
+
+/* Layout trang bài học - Hỗ trợ Responsive */
+.lesson-layout { display: flex; flex-direction: column; min-height: calc(100vh - 60px); }
+.sidebar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1.5rem; }
+.sidebar a { display: block; padding: 0.5rem 0.75rem; border-radius: 4px; color: #4b5563; }
 .sidebar a:hover { background: #f3f4f6; text-decoration: none; }
-.content { flex: 1; padding: 2rem; max-width: 800px; margin: 0 auto; background: #fff; }
-.video-container { margin-bottom: 2rem; }
+.sidebar a.active { background: #e0e7ff; color: #2563eb; font-weight: 600; border-left: 3px solid #2563eb; }
+.content { flex: 1; padding: 1.5rem; max-width: 800px; margin: 0 auto; background: #fff; width: 100%; box-sizing: border-box; }
+
+/* Hỗ trợ Responsive Video Iframe */
+.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin-bottom: 2rem; border-radius: 8px; }
+.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.markdown-body img { max-width: 100%; height: auto; }
+
+/* PC Layout */
+@media (min-width: 768px) {
+    .lesson-layout { flex-direction: row; }
+    .sidebar { width: 300px; border-right: 1px solid #e5e7eb; border-bottom: none; }
+    .content { padding: 2rem 3rem; }
+}
 "#;
 
 const INDEX_TEMPLATE: &str = r#"
@@ -153,17 +177,26 @@ const INDEX_TEMPLATE: &str = r#"
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.site_name }}</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:,"> <!-- Chặn lỗi 404 favicon -->
 </head>
 <body>
     <header><h2>{{ config.site_name }}</h2></header>
     <div class="container">
         <h1>Danh sách khóa học</h1>
         <div class="grid">
-            {% for course in courses %}
-            <div class="card">
-                <h3><a href="/{{ course.slug }}/">{{ course.name }}</a></h3>
-                <p>Số bài học: {{ course.lessons | length }}</p>
-            </div>
+            {% for item in global_menu %}
+                {% if item.type == "Course" %}
+                    <div class="card">
+                        <h3><a href="/{{ item.slug }}/">{{ item.title }}</a></h3>
+                    </div>
+                {% elif item.type == "Section" %}
+                    <h2 class="section-header">{{ item.title }}</h2>
+                    {% for course in item.courses %}
+                        <div class="card">
+                            <h3><a href="/{{ course.slug }}/">{{ course.title }}</a></h3>
+                        </div>
+                    {% endfor %}
+                {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -179,21 +212,27 @@ const COURSE_TEMPLATE: &str = r#"
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ course.name }} - {{ config.site_name }}</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:,"> <!-- Chặn lỗi 404 favicon -->
 </head>
 <body>
     <header><h2><a href="/">{{ config.site_name }}</a> / {{ course.name }}</h2></header>
     <div class="container">
         <h1>Lộ trình khóa học: {{ course.name }}</h1>
         <div class="timeline">
-            <ul>
-                {% for sum in course.summary %}
-                <li>
-                    <a href="{{ sum.file_path | replace(from=".md", to=".html") }}">
-                        <strong>{{ sum.title }}</strong>
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
+            {% for section in course.summary %}
+                {% if section.section_title != "" %}
+                    <h3 class="section-title">{{ section.section_title }}</h3>
+                {% endif %}
+                <ul class="section-list">
+                    {% for lesson in section.lessons %}
+                    <li>
+                        <a href="{{ lesson.url }}">
+                            <strong>{{ lesson.title }}</strong>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
         </div>
     </div>
 </body>
@@ -208,19 +247,28 @@ const LESSON_TEMPLATE: &str = r#"
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ lesson.title }} - {{ config.site_name }}</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:,"> <!-- Chặn lỗi 404 favicon -->
 </head>
 <body>
     <header><h2><a href="/">{{ config.site_name }}</a> / <a href="/{{ course.slug }}/">{{ course.name }}</a></h2></header>
     <div class="lesson-layout">
         <aside class="sidebar">
             <h3>Nội dung khóa học</h3>
-            <ul>
-                {% for sum in course.summary %}
-                <li>
-                    <a href="{{ sum.file_path | replace(from=".md", to=".html") }}">{{ sum.title }}</a>
-                </li>
-                {% endfor %}
-            </ul>
+            {% for section in course.summary %}
+                {% if section.section_title != "" %}
+                    <h4 class="section-title">{{ section.section_title }}</h4>
+                {% endif %}
+                <ul class="section-list">
+                    {% for item in section.lessons %}
+                    <li>
+                        <!-- So sánh URL bài học với file HTML đang tạo để đánh dấu Active -->
+                        <a href="/{{ course.slug }}/{{ item.url }}" class="{% if item.url == lesson.file_name %}active{% endif %}">
+                            {{ item.title }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
         </aside>
         <main class="content">
             {% if lesson.youtube_html %}
