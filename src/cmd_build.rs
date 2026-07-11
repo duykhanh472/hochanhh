@@ -132,39 +132,81 @@ pub fn execute() -> Result<(), String> {
 // HTML / CSS TEMPLATES (Nhúng trực tiếp để chạy được ngay)
 // =============================================================================
 
+// =============================================================================
+// HTML / CSS TEMPLATES (Nhúng trực tiếp để chạy được ngay)
+// =============================================================================
+
 const CSS_STYLES: &str = r#"
 /* Sử dụng System Fonts và tối ưu hiển thị */
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #f9f9fa; color: #333; line-height: 1.6; }
 a { text-decoration: none; color: #2563eb; }
 a:hover { text-decoration: underline; }
-header { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
-.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.section-header { grid-column: 1 / -1; margin-top: 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
 
-/* Section List UI */
-.section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.5rem 0; color: #111827; }
+/* Header chung */
+.site-header { background: #fff; padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.site-header h2 { margin: 0; font-size: 1.25rem; color: #111827; }
+.site-header h2 a { color: inherit; }
+
+/* Container & Grid (Trang chủ & Khóa học) */
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: transform 0.2s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.card h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+
+/* Breadcrumb & Section */
+.breadcrumb { margin-bottom: 1.5rem; font-size: 0.95rem; color: #6b7280; }
+.breadcrumb a { color: #4b5563; }
+.breadcrumb a:hover { color: #2563eb; }
+.section-header { grid-column: 1 / -1; margin-top: 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; font-size: 1.25rem; }
+.section-title { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem 0; color: #111827; }
+
+/* Section List (Sidebar & Course outline) */
 ul.section-list { list-style: none; padding: 0; margin: 0; }
 ul.section-list li { margin-bottom: 0.25rem; }
+ul.section-list a { display: block; padding: 0.6rem 0.75rem; border-radius: 6px; color: #4b5563; transition: all 0.2s; }
+ul.section-list a:hover { background: #f3f4f6; color: #111827; text-decoration: none; }
+ul.section-list a.active { background: #e0e7ff; color: #2563eb; font-weight: 600; border-left: 4px solid #2563eb; padding-left: calc(0.75rem - 4px); }
 
-/* Layout trang bài học - Hỗ trợ Responsive */
-.lesson-layout { display: flex; flex-direction: column; min-height: calc(100vh - 60px); }
-.sidebar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1.5rem; }
-.sidebar a { display: block; padding: 0.5rem 0.75rem; border-radius: 4px; color: #4b5563; }
-.sidebar a:hover { background: #f3f4f6; text-decoration: none; }
-.sidebar a.active { background: #e0e7ff; color: #2563eb; font-weight: 600; border-left: 3px solid #2563eb; }
+/* Responsive Topbar (Giống ảnh eboard) */
+.lesson-topbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: #fff; border-bottom: 1px solid #e5e7eb; }
+.back-link { font-weight: 600; color: #374151; font-size: 1rem; display: flex; align-items: center; gap: 0.25rem; }
+.back-link:hover { color: #2563eb; text-decoration: none; }
+.menu-toggle { background: none; border: 1px solid #e5e7eb; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.8rem; cursor: pointer; color: #374151; display: flex; flex-direction: column; align-items: center; }
+.menu-toggle-icon { font-size: 1.1rem; line-height: 1.2; }
+
+/* Layout trang bài học */
+.lesson-layout { display: flex; min-height: calc(100vh - 120px); position: relative; }
+
+/* Left Menu (Off-canvas cho Mobile) */
+.sidebar { background: #fff; position: fixed; top: 0; left: 0; bottom: 0; width: 280px; transform: translateX(-100%); transition: transform 0.3s ease; z-index: 1000; display: flex; flex-direction: column; box-shadow: 2px 0 8px rgba(0,0,0,0.1); }
+.sidebar.open { transform: translateX(0); }
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; }
+.sidebar-header h3 { margin: 0; font-size: 1.1rem; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280; line-height: 1; padding: 0; }
+.sidebar-content { padding: 1rem 1.5rem; overflow-y: auto; flex: 1; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; backdrop-filter: blur(2px); }
+.overlay.open { display: block; }
+
+/* Nội dung bài giảng */
 .content { flex: 1; padding: 1.5rem; max-width: 800px; margin: 0 auto; background: #fff; width: 100%; box-sizing: border-box; }
+.lesson-main-title { font-size: 1.5rem; margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: #111827; }
+.lesson-main-title::before { content: "▶"; font-size: 1.2rem; color: #4b5563; }
 
-/* Hỗ trợ Responsive Video Iframe */
-.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin-bottom: 2rem; border-radius: 8px; }
-.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.markdown-body img { max-width: 100%; height: auto; }
+/* Video Iframe */
+.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin-bottom: 2rem; border-radius: 8px; background: #000; }
+.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+.markdown-body img { max-width: 100%; height: auto; border-radius: 4px; }
 
 /* PC Layout */
 @media (min-width: 768px) {
-    .lesson-layout { flex-direction: row; }
-    .sidebar { width: 300px; border-right: 1px solid #e5e7eb; border-bottom: none; }
+    .site-header { padding: 1rem 2rem; }
+    .lesson-topbar { padding: 1rem 2rem; }
+    .menu-toggle { display: none; }
+    .sidebar { position: static; transform: none; width: 320px; z-index: 1; box-shadow: none; border-right: 1px solid #e5e7eb; }
+    .sidebar-header { display: none; }
+    .overlay { display: none !important; }
     .content { padding: 2rem 3rem; }
 }
 "#;
@@ -177,10 +219,12 @@ const INDEX_TEMPLATE: &str = r#"
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.site_name }}</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="icon" href="data:,"> <!-- Chặn lỗi 404 favicon -->
+    <link rel="icon" href="data:,">
 </head>
 <body>
-    <header><h2>{{ config.site_name }}</h2></header>
+    <header class="site-header">
+        <h2><a href="/">{{ config.site_name }}</a></h2>
+    </header>
     <div class="container">
         <h1>Danh sách khóa học</h1>
         <div class="grid">
@@ -212,11 +256,14 @@ const COURSE_TEMPLATE: &str = r#"
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ course.name }} - {{ config.site_name }}</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="icon" href="data:,"> <!-- Chặn lỗi 404 favicon -->
+    <link rel="icon" href="data:,">
 </head>
 <body>
-    <header><h2><a href="/">{{ config.site_name }}</a> / {{ course.name }}</h2></header>
+    <header class="site-header">
+        <h2><a href="/">{{ config.site_name }}</a></h2>
+    </header>
     <div class="container">
+        <div class="breadcrumb"><a href="/">Trang chủ</a> / {{ course.name }}</div>
         <h1>Lộ trình khóa học: {{ course.name }}</h1>
         <div class="timeline">
             {% for section in course.summary %}
@@ -247,41 +294,74 @@ const LESSON_TEMPLATE: &str = r#"
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ lesson.title }} - {{ config.site_name }}</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="icon" href="data:,"> <!-- Chặn lỗi 404 favicon -->
+    <link rel="icon" href="data:,">
 </head>
 <body>
-    <header><h2><a href="/">{{ config.site_name }}</a> / <a href="/{{ course.slug }}/">{{ course.name }}</a></h2></header>
+    <header class="site-header">
+        <h2><a href="/">{{ config.site_name }}</a></h2>
+    </header>
+
+    <!-- Thanh Topbar (Breadcrumb cho PC & Nút Menu cho Mobile) -->
+    <div class="lesson-topbar">
+        <a href="/{{ course.slug }}/" class="back-link">❮ {{ course.name }}</a>
+        <button class="menu-toggle" onclick="toggleMenu()">
+            <span class="menu-toggle-icon">☰</span>
+            Mục lục
+        </button>
+    </div>
+
     <div class="lesson-layout">
-        <aside class="sidebar">
-            <h3>Nội dung khóa học</h3>
-            {% for section in course.summary %}
-                {% if section.section_title != "" %}
-                    <h4 class="section-title">{{ section.section_title }}</h4>
-                {% endif %}
-                <ul class="section-list">
-                    {% for item in section.lessons %}
-                    <li>
-                        <!-- So sánh URL bài học với file HTML đang tạo để đánh dấu Active -->
-                        <a href="/{{ course.slug }}/{{ item.url }}" class="{% if item.url == lesson.file_name %}active{% endif %}">
-                            {{ item.title }}
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% endfor %}
+        <!-- Overlay nền đen mờ khi mở menu trên Mobile -->
+        <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+        <!-- Left Menu (Mặc định ẩn bên trái trên Mobile, cố định trên PC) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Nội dung khóa học</h3>
+                <button class="close-btn" onclick="toggleMenu()">×</button>
+            </div>
+            <div class="sidebar-content">
+                {% for section in course.summary %}
+                    {% if section.section_title != "" %}
+                        <h4 class="section-title">{{ section.section_title }}</h4>
+                    {% endif %}
+                    <ul class="section-list">
+                        {% for item in section.lessons %}
+                        <li>
+                            <a href="/{{ course.slug }}/{{ item.url }}" class="{% if item.url == lesson.file_name %}active{% endif %}">
+                                {{ item.title }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
+            </div>
         </aside>
+
+        <!-- Nội dung bài học chính -->
         <main class="content">
+            <!-- Icon Play và Tiêu đề ngay phía trên Video -->
+            <h1 class="lesson-main-title">{{ lesson.title }}</h1>
+            
             {% if lesson.youtube_html %}
             <div class="video-container">
                 {{ lesson.youtube_html | safe }}
             </div>
             {% endif %}
-            <h1>{{ lesson.title }}</h1>
+            
             <div class="markdown-body">
                 {{ lesson.content_html | safe }}
             </div>
         </main>
     </div>
+
+    <!-- Script Vanilla JS siêu nhẹ để đóng/mở menu trên Mobile -->
+    <script>
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('open');
+        }
+    </script>
 </body>
 </html>
 "#;
