@@ -1,8 +1,21 @@
 # hochanh
 
-`hochanh` là công cụ cli dùng để tạo các trang web khóa học từ các tệp Markdown và video youtube nữa.
+`hochanh` là công cụ cli dùng để tạo các trang web khóa học từ các tệp Markdown và video youtube nữa. Đây là công cụ mà mình dùng để tạo trang [Tiếng Nhật Dũng Rừng](https://vietmooc.github.io/tieng-nhat/index.html).
 
-*để khi nào ném ảnh hoặc/và trang demo lên sau*
+Bao gồm: Trang chủ, Trang khóa học (Liệt kê các bài) và Trang Bài học.
+
+Trang chủ sẽ trông như này (Về cơ bản là chỉ liệt kê danh sách khóa học ra thôi):
+
+![](assets/trang-chu.png)
+
+Trang khóa học:
+
+![](assets/khoa-hoc.png)
+
+Trang bài học:
+
+![](assets/bai-hoc.png)
+
 
 ## Installation
 
